@@ -1,0 +1,78 @@
+Quiero un programa en Java 24, utilizando Callable, Future y ExecutorService para simular un torneo de 16 jugadores en formato de eliminación Directa.
+
+Cada partido se juego al mejor de 3 sets, gana primero quien gana 2 sets, cada ganador debe ser generado en un método aleatorio. El ganador de cada partido avanza a la siguiente ronda. Las Rondas se juegan en Simultaneo; siendo así, la siguiente ronda inicia solo cuando todos los partidos de la ronda actual han terminado. Simula el tiempo de duración de cada partido en un rango de 1.5 y 2 segundos.
+
+El torneo cuenta con 4 rondas: Octavos de Final, Cuartos de Final, Semifinal y Final. Por cada set se presenta el Ganador y el resultado final del partido.
+
+Ten cuidado, en el caso de que exista empate después de 2 sets, se juega un tercer set como desempate, o bien se juega un set hasta que se desempate. Se continua con las rondas hasta encontrar al campeón
+
+Necesito 3 alternativas diferentes usando Callable, Future y ExecutorService
+
+A continuación, te argumento un código de ejemplo sobre Callable, Future y ExecutorService:
+
+public static void main(String[] args) throws IOException {
+        String pathToCSV = "data.csv";
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS Z");
+
+        var csvFormat = CSVFormat.RFC4180.builder()
+                .setHeader()
+                .setSkipHeaderRecord(true)
+                .build();
+
+        // Usar ConcurrentMap para procesamiento paralelo y seguro, con el objetivo de
+        // unir cada Futuro con su Hilo subido para saber que resultado pertenece a cada anio
+        // ConcurrentMap<Integer, Future<String>>
+
+        ConcurrentMap<Integer, List<ClimateRecord>> dataByYear;
+
+        try (Reader reader = Files.newBufferedReader(Paths.get(pathToCSV));
+             CSVParser parser = new CSVParser(reader, csvFormat)) {
+
+            dataByYear = parser.stream()
+                    .parallel() // procesamiento paralelo
+                    .map(AppFP::getClimateRecord) // convertir a ClimateRecord
+                    .collect(Collectors.groupingByConcurrent(
+                            ClimateRecord::year,
+                            Collectors.toList()
+                    ));
+        }
+
+        // Crear hilos por año
+        ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+
+        List<Future<String>> futures = dataByYear.entrySet().stream()
+                .map(entry -> executor.submit(() -> {
+                    int year = entry.getKey();
+                    List<ClimateRecord> records = entry.getValue();
+
+                    double avg = records.stream()
+                            .mapToDouble(ClimateRecord::temperature)
+                            .average()
+                            .orElse(Double.NaN);
+
+                    return "Año " + year + ": Promedio = " + avg;
+                }))
+                .toList();
+
+        // Esperar resultados e imprimir
+        futures.forEach(future -> {
+            try {
+                System.out.println(future.get());
+            } catch (InterruptedException | ExecutionException e) {
+                e.printStackTrace();
+            }
+        });
+
+        executor.shutdown();
+    }
+}
+
+
+public record ClimateRecord(int year, double temperature) {
+    public static ClimateRecord fromCSV(CSVRecord record, DateTimeFormatter formatter) {
+        OffsetDateTime date = OffsetDateTime.parse(record.get("Formatted Date").trim(), formatter);
+        double temp = Double.parseDouble(record.get("Temperature").trim());
+        return new ClimateRecord(date.getYear(), temp);
+    }
+}
