@@ -1,3 +1,5 @@
+// Se uso la alternativa 1: Usando submit() y Future
+
 Quiero un programa en Java 24, utilizando Callable, Future y ExecutorService para simular un torneo de 16 jugadores en formato de eliminación Directa.
 
 Cada partido se juego al mejor de 3 sets, gana primero quien gana 2 sets, cada ganador debe ser generado en un método aleatorio. El ganador de cada partido avanza a la siguiente ronda. Las Rondas se juegan en Simultaneo; siendo así, la siguiente ronda inicia solo cuando todos los partidos de la ronda actual han terminado. Simula el tiempo de duración de cada partido en un rango de 1.5 y 2 segundos.

@@ -1,17 +1,20 @@
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.*;
-import java.util.stream.Collectors;
-import java.util.stream.IntStream;
+
+/*
+Se uso la Alternativa 1: Usando submit() y Future
+ */
 
 public class Main {
 
     public static void main(String[] args) throws InterruptedException, ExecutionException {
 
         // 1. Lista de jugadores
-        List<String> players = IntStream.rangeClosed(1, 16)
-                .mapToObj(i -> "Jugador " + i)
-                .collect(Collectors.toList());
+        List<String> players = new ArrayList<>();
+        for (int i = 1; i <= 16; i++) {
+            players.add("Jugador " + i);
+        }
 
         // 2. Pool de hilos para ejecutar los partidos simultáneamente
         ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
@@ -41,6 +44,5 @@ public class Main {
         // 6. Mostrar campeón
         System.out.println("🏆 ¡Campeón del torneo: " + currentPlayers.get(0) + "!");
         executor.shutdown();
-
     }
 }
